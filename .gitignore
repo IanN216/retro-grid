@@ -1,0 +1,37 @@
+# Dependencias (Lo más importante para tu caso)
+node_modules/
+.pnp
+.pnp.js
+
+# Producción / Build
+dist/
+dist-ssr/
+*.local
+
+# Cache de herramientas
+.vite/
+.eslintcache
+.stylelintcache
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor (VS Code / IntelliJ)
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# TypeScript
+*.tsbuildinfo
+
+# OS específicos
+.DS_Store
+Thumbs.db

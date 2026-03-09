@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  --font-pixel: 'Press Start 2P', monospace;
+  --color-retro-bg: #1a1a2e;
+  --color-retro-panel: #16213e;
+  --color-retro-card: #0f3460;
+  --color-retro-accent: #e94560;
+  --color-retro-gold: #ffd700;
+  --color-retro-gold-dark: #b8960f;
+  --color-retro-text: #e0e0e0;
+  --color-retro-text-dim: #8888aa;
+  --color-retro-border: #533483;
+  --color-retro-success: #4ade80;
+  --color-retro-info: #60a5fa;
+  --color-retro-grass: #2d5a1e;
+  --color-retro-stone: #6b6b6b;
+  --color-retro-water: #1a4a7a;
+  --color-retro-sand: #c4a43e;
+  --color-retro-void: #111111;
+}
+
+* {
+  image-rendering: pixelated;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-retro-bg);
+  color: var(--color-retro-text);
+  font-family: var(--font-pixel);
+  overflow: hidden;
+}
+
+/* Custom scrollbar for 8-bit feel */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-retro-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-retro-border);
+  border: 1px solid var(--color-retro-gold-dark);
+}
+
+/* Pixel-perfect text rendering */
+.font-pixel {
+  font-family: 'Press Start 2P', monospace;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+}
