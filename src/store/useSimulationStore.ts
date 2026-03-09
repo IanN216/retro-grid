@@ -1,18 +1,10 @@
 import { create } from 'zustand';
-import type { Cell, SimulationState, SimulationActions, TerrainType } from '@/types/simulation';
+import { TERRAIN_IDS, type SimulationState, type SimulationActions } from '@/types/simulation';
 
-function generateCells(cols: number, rows: number): Cell[] {
-  const cells: Cell[] = new Array(cols * rows);
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      cells[y * cols + x] = {
-        x,
-        y,
-        terrainType: 'grass',
-        entityId: null,
-      };
-    }
-  }
+function generateCells(cols: number, rows: number): Uint8Array {
+  const cells = new Uint8Array(cols * rows);
+  const grassId = TERRAIN_IDS['grass'];
+  cells.fill(grassId);
   return cells;
 }
 
@@ -51,12 +43,12 @@ export const useSimulationStore = create<SimulationState & SimulationActions>((s
   setSelectedCell: (cell) => set({ selectedCell: cell }),
   setHoveredCell: (cell) => set({ hoveredCell: cell }),
 
-  setCellTerrain: (x: number, y: number, terrain: TerrainType) => {
+  setCellTerrain: (x: number, y: number, terrainId: number) => {
     const state = get();
     const idx = y * state.cols + x;
     if (idx < 0 || idx >= state.cells.length) return;
-    const newCells = [...state.cells];
-    newCells[idx] = { ...newCells[idx], terrainType: terrain };
+    const newCells = new Uint8Array(state.cells);
+    newCells[idx] = terrainId;
     set({ cells: newCells });
   },
 
@@ -73,12 +65,6 @@ export const useSimulationStore = create<SimulationState & SimulationActions>((s
   processTurn: () => {
     const state = get();
     // Future: iterate over cells and entities to compute next state
-    // for (const cell of state.cells) {
-    //   if (cell.entityId) {
-    //     const entity = state.entities.find(e => e.id === cell.entityId);
-    //     // process entity logic
-    //   }
-    // }
     console.log(`[Engine] Processing turn for ${state.cols}x${state.rows} grid (${state.cells.length} cells)`);
   },
 }));

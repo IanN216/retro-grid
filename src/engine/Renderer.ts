@@ -1,4 +1,4 @@
-import type { Cell, TerrainType } from '@/types/simulation';
+import { TERRAIN_TYPE_BY_ID, type TerrainType } from '@/types/simulation';
 
 const TERRAIN_COLORS: Record<TerrainType, string> = {
   grass: '#2d5a1e',
@@ -48,7 +48,7 @@ export class Renderer {
   }
 
   drawGrid(
-    cells: Cell[],
+    cells: Uint8Array,
     cols: number,
     rows: number,
     zoom: number,
@@ -73,8 +73,9 @@ export class Renderer {
     // Draw terrain cells
     for (let y = startRow; y < endRow; y++) {
       for (let x = startCol; x < endCol; x++) {
-        const cell = cells[y * cols + x];
-        if (!cell) continue;
+        const terrainId = cells[y * cols + x];
+        const terrainType = TERRAIN_TYPE_BY_ID[terrainId];
+        if (!terrainType) continue;
 
         const px = x * cellSize;
         const py = y * cellSize;
@@ -82,37 +83,30 @@ export class Renderer {
         // Checkerboard pattern for visual depth
         const isAlt = (x + y) % 2 === 0;
         ctx.fillStyle = isAlt
-          ? TERRAIN_COLORS[cell.terrainType]
-          : TERRAIN_COLORS_ALT[cell.terrainType];
+          ? TERRAIN_COLORS[terrainType]
+          : TERRAIN_COLORS_ALT[terrainType];
         ctx.fillRect(px, py, cellSize, cellSize);
 
         // Draw pixel-art detail dots for grass terrain
-        if (cell.terrainType === 'grass' && cellSize >= 8) {
+        if (terrainType === 'grass' && cellSize >= 8) {
           ctx.fillStyle = isAlt ? '#4a8a35' : '#3d7a2a';
           const dotSize = Math.max(1, cellSize * 0.1);
           ctx.fillRect(px + cellSize * 0.25, py + cellSize * 0.25, dotSize, dotSize);
           ctx.fillRect(px + cellSize * 0.7, py + cellSize * 0.6, dotSize, dotSize);
         }
 
-        if (cell.terrainType === 'stone' && cellSize >= 8) {
+        if (terrainType === 'stone' && cellSize >= 8) {
           ctx.fillStyle = isAlt ? '#888888' : '#5e5e5e';
           const dotSize = Math.max(1, cellSize * 0.15);
           ctx.fillRect(px + cellSize * 0.3, py + cellSize * 0.5, dotSize, dotSize);
           ctx.fillRect(px + cellSize * 0.6, py + cellSize * 0.3, dotSize, dotSize);
         }
 
-        if (cell.terrainType === 'water' && cellSize >= 8) {
+        if (terrainType === 'water' && cellSize >= 8) {
           ctx.fillStyle = '#3090d0';
           const dotSize = Math.max(1, cellSize * 0.2);
           const waveOffset = (Date.now() / 600 + x * 0.5) % 2;
           ctx.fillRect(px + cellSize * 0.2, py + cellSize * (0.3 + waveOffset * 0.05), dotSize, Math.max(1, dotSize * 0.4));
-        }
-
-        // Entity placeholder indicator
-        if (cell.entityId) {
-          ctx.fillStyle = '#ff4444';
-          const eSize = cellSize * 0.5;
-          ctx.fillRect(px + (cellSize - eSize) / 2, py + (cellSize - eSize) / 2, eSize, eSize);
         }
       }
     }

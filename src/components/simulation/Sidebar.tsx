@@ -3,7 +3,7 @@ import { useSimulationStore } from '@/store/useSimulationStore';
 import { Button8bit } from '@/components/ui/8bit/Button8bit';
 import { Card8bit } from '@/components/ui/8bit/Card8bit';
 import { Input8bit } from '@/components/ui/8bit/Input8bit';
-import type { TerrainType } from '@/types/simulation';
+import { TERRAIN_IDS, TERRAIN_TYPE_BY_ID, type TerrainType } from '@/types/simulation';
 
 const TERRAIN_OPTIONS: { type: TerrainType; label: string; color: string }[] = [
   { type: 'grass', label: 'Grass', color: 'bg-retro-grass' },
@@ -47,13 +47,21 @@ export const Sidebar: React.FC = () => {
 
   const handlePaintCell = useCallback(() => {
     if (selectedCell) {
-      setCellTerrain(selectedCell.x, selectedCell.y, activeTerrain);
+      setCellTerrain(selectedCell.x, selectedCell.y, TERRAIN_IDS[activeTerrain]);
     }
   }, [selectedCell, activeTerrain, setCellTerrain]);
 
-  const selectedCellData = selectedCell
-    ? cells[selectedCell.y * cols + selectedCell.x]
-    : null;
+  let selectedCellData = null;
+  if (selectedCell) {
+    const idx = selectedCell.y * cols + selectedCell.x;
+    const terrainId = cells[idx];
+    selectedCellData = {
+      x: selectedCell.x,
+      y: selectedCell.y,
+      terrainType: TERRAIN_TYPE_BY_ID[terrainId],
+      index: idx
+    };
+  }
 
   return (
     <div className="w-[280px] min-w-[280px] bg-retro-panel border-l-[3px] border-retro-border flex flex-col h-full overflow-hidden">
@@ -213,13 +221,13 @@ export const Sidebar: React.FC = () => {
               <div className="flex justify-between">
                 <span className="text-retro-text-dim">Entity:</span>
                 <span className="text-retro-text-dim/50">
-                  {selectedCellData.entityId || 'None'}
+                  None
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-retro-text-dim">Index:</span>
                 <span className="text-retro-info">
-                  {selectedCellData.y * cols + selectedCellData.x}
+                  {selectedCellData.index}
                 </span>
               </div>
             </div>
