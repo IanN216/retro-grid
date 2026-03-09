@@ -2,17 +2,20 @@ import React, { useRef, MouseEvent } from 'react';
 import { useSimulationStore } from '@/store/useSimulationStore';
 import { Button8bit } from '@/components/ui/8bit/Button8bit';
 import { Card8bit } from '@/components/ui/8bit/Card8bit';
-import { TerrainType } from '@/types/simulation';
 
 interface AssetPanelProps {
-  activeTerrain: TerrainType;
+  activeTerrainId: number;
 }
 
-export const AssetPanel: React.FC<AssetPanelProps> = ({ activeTerrain }) => {
+export const AssetPanel: React.FC<AssetPanelProps> = ({ activeTerrainId }) => {
   const spriteSheet = useSimulationStore((s) => s.spriteSheet);
   const setSpriteSheet = useSimulationStore((s) => s.setSpriteSheet);
   const updateTerrainSprite = useSimulationStore((s) => s.updateTerrainSprite);
   const terrainSprites = useSimulationStore((s) => s.terrainSprites);
+  const terrains = useSimulationStore((s) => s.terrains);
+
+  const activeTerrain = terrains.find(t => t.id === activeTerrainId);
+  const activeName = activeTerrain ? activeTerrain.name : `ID ${activeTerrainId}`;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -46,7 +49,7 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({ activeTerrain }) => {
     const tileRow = Math.floor(actualY / 16);
 
     const index = tileRow * cols + tileCol;
-    updateTerrainSprite(activeTerrain, index);
+    updateTerrainSprite(activeTerrainId, index);
   };
 
   return (
@@ -66,7 +69,7 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({ activeTerrain }) => {
         {spriteSheet && (
           <div className="mt-2 flex flex-col items-center">
             <p className="font-pixel text-[8px] text-retro-text-dim mb-1 text-center">
-              Select tile for <span className="text-retro-gold">{activeTerrain.toUpperCase()}</span>
+              Select tile for <span className="text-retro-gold">{activeName.toUpperCase()}</span>
             </p>
             <div 
               className="relative cursor-pointer border-2 border-retro-border"
@@ -89,14 +92,14 @@ export const AssetPanel: React.FC<AssetPanelProps> = ({ activeTerrain }) => {
                   `
                 }}
               />
-              {terrainSprites[activeTerrain] !== undefined && (
+              {terrainSprites[activeTerrainId] !== undefined && (
                 <div 
                   className="absolute border-2 border-retro-gold pointer-events-none"
                   style={{
                     width: `${(16 / spriteSheet.width) * 100}%`,
                     height: `${(16 / spriteSheet.height) * 100}%`,
-                    left: `${((terrainSprites[activeTerrain] % Math.floor(spriteSheet.width / 16)) * 16 / spriteSheet.width) * 100}%`,
-                    top: `${(Math.floor(terrainSprites[activeTerrain] / Math.floor(spriteSheet.width / 16)) * 16 / spriteSheet.height) * 100}%`
+                    left: `${((terrainSprites[activeTerrainId] % Math.floor(spriteSheet.width / 16)) * 16 / spriteSheet.width) * 100}%`,
+                    top: `${(Math.floor(terrainSprites[activeTerrainId] / Math.floor(spriteSheet.width / 16)) * 16 / spriteSheet.height) * 100}%`
                   }}
                 />
               )}

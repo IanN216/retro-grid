@@ -1,17 +1,9 @@
-export type TerrainType = 'grass' | 'stone' | 'water' | 'sand' | 'void';
-
-export const TERRAIN_IDS: Record<TerrainType, number> = {
-  grass: 0,
-  stone: 1,
-  water: 2,
-  sand: 3,
-  void: 4,
-};
-
-export const TERRAIN_TYPE_BY_ID: Record<number, TerrainType> = Object.entries(TERRAIN_IDS).reduce(
-  (acc, [key, val]) => ({ ...acc, [val]: key as TerrainType }),
-  {}
-);
+export interface TerrainDefinition {
+  id: number;
+  name: string;
+  spriteIndex: number;
+  color: string;
+}
 
 export interface Entity {
   id: string;
@@ -24,7 +16,7 @@ export interface Entity {
   defense: number;
 }
 
-export type SpriteMapping = Record<TerrainType, number>;
+export type SpriteMapping = Record<number, number>; // maps terrain ID to sprite index
 
 export interface SimulationState {
   cols: number;
@@ -40,6 +32,7 @@ export interface SimulationState {
   inputCols: string;
   inputRows: string;
   spriteSheet: HTMLImageElement | null;
+  terrains: TerrainDefinition[];
   terrainSprites: SpriteMapping;
 }
 
@@ -55,5 +48,6 @@ export interface SimulationActions {
   setInputRows: (val: string) => void;
   processTurn: () => void;
   setSpriteSheet: (image: HTMLImageElement | null) => void;
-  updateTerrainSprite: (terrain: TerrainType, tileIndex: number) => void;
+  updateTerrainSprite: (terrainId: number, tileIndex: number) => void;
+  addTerrain: (name: string, spriteIndex: number, color?: string) => void;
 }

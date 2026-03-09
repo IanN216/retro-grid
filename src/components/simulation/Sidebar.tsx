@@ -3,16 +3,7 @@ import { useSimulationStore } from '@/store/useSimulationStore';
 import { Button8bit } from '@/components/ui/8bit/Button8bit';
 import { Card8bit } from '@/components/ui/8bit/Card8bit';
 import { Input8bit } from '@/components/ui/8bit/Input8bit';
-import { TERRAIN_IDS, TERRAIN_TYPE_BY_ID, type TerrainType } from '@/types/simulation';
 import { AssetPanel } from '@/components/simulation/AssetPanel';
-
-const TERRAIN_OPTIONS: { type: TerrainType; label: string; color: string }[] = [
-  { type: 'grass', label: 'Grass', color: 'bg-retro-grass' },
-  { type: 'stone', label: 'Stone', color: 'bg-retro-stone' },
-  { type: 'water', label: 'Water', color: 'bg-retro-water' },
-  { type: 'sand', label: 'Sand', color: 'bg-retro-sand' },
-  { type: 'void', label: 'Void', color: 'bg-retro-void' },
-];
 
 const PRESET_SIZES = [
   { label: '10×10', cols: 10, rows: 10 },
@@ -37,8 +28,12 @@ export const Sidebar: React.FC = () => {
   const inputRows = useSimulationStore((s) => s.inputRows);
   const setInputCols = useSimulationStore((s) => s.setInputCols);
   const setInputRows = useSimulationStore((s) => s.setInputRows);
+  const terrains = useSimulationStore((s) => s.terrains);
+  const addTerrain = useSimulationStore((s) => s.addTerrain);
+  const spriteSheet = useSimulationStore((s) => s.spriteSheet);
+  const terrainSprites = useSimulationStore((s) => s.terrainSprites);
 
-  const [activeTerrain, setActiveTerrain] = useState<TerrainType>('grass');
+  const [activeTerrainId, setActiveTerrainId] = useState<number>(0);
 
   const handleApplySize = useCallback(() => {
     const c = parseInt(inputCols) || cols;
@@ -48,18 +43,26 @@ export const Sidebar: React.FC = () => {
 
   const handlePaintCell = useCallback(() => {
     if (selectedCell) {
-      setCellTerrain(selectedCell.x, selectedCell.y, TERRAIN_IDS[activeTerrain]);
+      setCellTerrain(selectedCell.x, selectedCell.y, activeTerrainId);
     }
-  }, [selectedCell, activeTerrain, setCellTerrain]);
+  }, [selectedCell, activeTerrainId, setCellTerrain]);
+
+  const handleAddTerrain = useCallback(() => {
+    const name = prompt("Enter new terrain name:");
+    if (name) {
+      addTerrain(name, 0);
+    }
+  }, [addTerrain]);
 
   let selectedCellData = null;
   if (selectedCell) {
     const idx = selectedCell.y * cols + selectedCell.x;
     const terrainId = cells[idx];
+    const tDef = terrains.find(t => t.id === terrainId);
     selectedCellData = {
       x: selectedCell.x,
       y: selectedCell.y,
-      terrainType: TERRAIN_TYPE_BY_ID[terrainId],
+      terrainName: tDef ? tDef.name : `Unknown (${terrainId})`,
       index: idx
     };
   }
@@ -168,42 +171,67 @@ export const Sidebar: React.FC = () => {
         )}
 
         {/* Assets Panel */}
-        <AssetPanel activeTerrain={activeTerrain} />
+        <AssetPanel activeTerrainId={activeTerrainId} />
 
         {/* Terrain Palette */}
         <Card8bit title="Terrain" variant="default">
           <div className="flex flex-col gap-1.5">
-            {TERRAIN_OPTIONS.map((t) => (
-              <button
-                key={t.type}
-                onClick={() => setActiveTerrain(t.type)}
-                className={`
-                  flex items-center gap-2 px-2 py-1.5 font-pixel text-[8px]
-                  border-2 transition-all cursor-pointer
-                  ${
-                    activeTerrain === t.type
-                      ? 'border-retro-gold bg-retro-card text-retro-gold shadow-[inset_0_0_8px_rgba(255,215,0,0.15)]'
-                      : 'border-transparent text-retro-text-dim hover:text-retro-text hover:border-retro-text-dim/30'
-                  }
-                `}
-              >
-                <div className={`w-4 h-4 ${t.color} border border-black/50 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)]`} />
-                <span className="uppercase">{t.label}</span>
-                {activeTerrain === t.type && (
-                  <span className="ml-auto text-retro-gold">◄</span>
-                )}
-              </button>
-            ))}
+            {terrains.map((t) => {
+              const spriteIndex = terrainSprites[t.id] ?? t.spriteIndex;
+              let bgStyle: React.CSSProperties = { backgroundColor: t.color };
+              if (spriteSheet) {
+                const colsSheet = Math.floor(spriteSheet.width / 16);
+                const sx = (spriteIndex % colsSheet) * 16;
+                const sy = Math.floor(spriteIndex / colsSheet) * 16;
+                bgStyle = {
+                  backgroundImage: `url(${spriteSheet.src})`,
+                  backgroundPosition: `-${sx}px -${sy}px`,
+                  backgroundSize: `${spriteSheet.width}px ${spriteSheet.height}px`,
+                  imageRendering: 'pixelated',
+                };
+              }
+              
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTerrainId(t.id)}
+                  className={`
+                    flex items-center gap-2 px-2 py-1.5 font-pixel text-[8px]
+                    border-2 transition-all cursor-pointer
+                    ${
+                      activeTerrainId === t.id
+                        ? 'border-retro-gold bg-retro-card text-retro-gold shadow-[inset_0_0_8px_rgba(255,215,0,0.15)]'
+                        : 'border-transparent text-retro-text-dim hover:text-retro-text hover:border-retro-text-dim/30'
+                    }
+                  `}
+                >
+                  <div className={`w-4 h-4 border border-black/50 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.5)]`} style={bgStyle} />
+                  <span className="uppercase">{t.name}</span>
+                  {activeTerrainId === t.id && (
+                    <span className="ml-auto text-retro-gold">◄</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <Button8bit
-            variant="default"
-            size="sm"
-            className="w-full mt-2"
-            onClick={handlePaintCell}
-            disabled={!selectedCell}
-          >
-            ✎ Paint Cell
-          </Button8bit>
+          <div className="flex gap-2 mt-2">
+            <Button8bit
+              variant="default"
+              size="sm"
+              className="flex-1"
+              onClick={handlePaintCell}
+              disabled={!selectedCell}
+            >
+              ✎ Paint Cell
+            </Button8bit>
+            <Button8bit
+              variant="ghost"
+              size="sm"
+              onClick={handleAddTerrain}
+            >
+              + Add
+            </Button8bit>
+          </div>
         </Card8bit>
 
         {/* Cell Inspector */}
@@ -219,7 +247,7 @@ export const Sidebar: React.FC = () => {
               <div className="flex justify-between">
                 <span className="text-retro-text-dim">Terrain:</span>
                 <span className="text-retro-success uppercase">
-                  {selectedCellData.terrainType}
+                  {selectedCellData.terrainName}
                 </span>
               </div>
               <div className="flex justify-between">

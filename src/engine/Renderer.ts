@@ -1,21 +1,4 @@
-import { TERRAIN_TYPE_BY_ID, type TerrainType } from '@/types/simulation';
 import { useSimulationStore } from '@/store/useSimulationStore';
-
-const TERRAIN_COLORS: Record<TerrainType, string> = {
-  grass: '#2d5a1e',
-  stone: '#6b6b6b',
-  water: '#1a4a7a',
-  sand: '#c4a43e',
-  void: '#111111',
-};
-
-const TERRAIN_COLORS_ALT: Record<TerrainType, string> = {
-  grass: '#3a6e28',
-  stone: '#7a7a7a',
-  water: '#2060a0',
-  sand: '#d4b44e',
-  void: '#1a1a1a',
-};
 
 const GRID_LINE_COLOR = 'rgba(0, 0, 0, 0.35)';
 const SELECTED_COLOR = '#ffd700';
@@ -50,7 +33,7 @@ export class Renderer {
 
   drawGrid() {
     const state = useSimulationStore.getState();
-    const { cells, cols, rows, zoom, panX, panY, selectedCell, hoveredCell, spriteSheet, terrainSprites } = state;
+    const { cells, cols, rows, zoom, panX, panY, selectedCell, hoveredCell, spriteSheet, terrains, terrainSprites } = state;
 
     this.clear();
     const ctx = this.ctx;
@@ -65,46 +48,55 @@ export class Renderer {
     const endCol = Math.min(cols, Math.ceil((this.width - panX) / cellSize));
     const endRow = Math.min(rows, Math.ceil((this.height - panY) / cellSize));
 
+    // Cache terrains by ID for O(1) lookup
+    const terrainMap = new Map();
+    for (const t of terrains) {
+      terrainMap.set(t.id, t);
+    }
+
     // Draw terrain cells
     for (let y = startRow; y < endRow; y++) {
       for (let x = startCol; x < endCol; x++) {
         const terrainId = cells[y * cols + x];
-        const terrainType = TERRAIN_TYPE_BY_ID[terrainId];
-        if (!terrainType) continue;
+        const tDef = terrainMap.get(terrainId);
+        if (!tDef) continue;
 
         const px = x * cellSize;
         const py = y * cellSize;
 
         if (spriteSheet) {
-          const tileIndex = terrainSprites[terrainType] ?? 0;
+          const tileIndex = terrainSprites[terrainId] ?? tDef.spriteIndex;
           const colsSheet = Math.floor(spriteSheet.width / 16);
           const sx = (tileIndex % colsSheet) * 16;
           const sy = Math.floor(tileIndex / colsSheet) * 16;
           ctx.drawImage(spriteSheet, sx, sy, 16, 16, px, py, cellSize, cellSize);
         } else {
-          // Checkerboard pattern for visual depth
+          // Fallback colors when no spritesheet is loaded
           const isAlt = (x + y) % 2 === 0;
-          ctx.fillStyle = isAlt
-            ? TERRAIN_COLORS[terrainType]
-            : TERRAIN_COLORS_ALT[terrainType];
+          ctx.fillStyle = tDef.color;
           ctx.fillRect(px, py, cellSize, cellSize);
+          
+          if (isAlt) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.fillRect(px, py, cellSize, cellSize);
+          }
 
-          // Draw pixel-art detail dots for grass terrain
-          if (terrainType === 'grass' && cellSize >= 8) {
+          // Draw pixel-art detail dots for base terrains
+          if (tDef.name === 'grass' && cellSize >= 8) {
             ctx.fillStyle = isAlt ? '#4a8a35' : '#3d7a2a';
             const dotSize = Math.max(1, cellSize * 0.1);
             ctx.fillRect(px + cellSize * 0.25, py + cellSize * 0.25, dotSize, dotSize);
             ctx.fillRect(px + cellSize * 0.7, py + cellSize * 0.6, dotSize, dotSize);
           }
 
-          if (terrainType === 'stone' && cellSize >= 8) {
+          if (tDef.name === 'stone' && cellSize >= 8) {
             ctx.fillStyle = isAlt ? '#888888' : '#5e5e5e';
             const dotSize = Math.max(1, cellSize * 0.15);
             ctx.fillRect(px + cellSize * 0.3, py + cellSize * 0.5, dotSize, dotSize);
             ctx.fillRect(px + cellSize * 0.6, py + cellSize * 0.3, dotSize, dotSize);
           }
 
-          if (terrainType === 'water' && cellSize >= 8) {
+          if (tDef.name === 'water' && cellSize >= 8) {
             ctx.fillStyle = '#3090d0';
             const dotSize = Math.max(1, cellSize * 0.2);
             const waveOffset = (Date.now() / 600 + x * 0.5) % 2;

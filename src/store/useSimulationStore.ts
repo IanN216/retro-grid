@@ -1,9 +1,17 @@
 import { create } from 'zustand';
-import { TERRAIN_IDS, type SimulationState, type SimulationActions, type TerrainType } from '@/types/simulation';
+import type { SimulationState, SimulationActions, TerrainDefinition } from '@/types/simulation';
+
+const INITIAL_TERRAINS: TerrainDefinition[] = [
+  { id: 0, name: 'grass', spriteIndex: 0, color: '#2d5a1e' },
+  { id: 1, name: 'stone', spriteIndex: 1, color: '#6b6b6b' },
+  { id: 2, name: 'water', spriteIndex: 2, color: '#1a4a7a' },
+  { id: 3, name: 'sand',  spriteIndex: 3, color: '#c4a43e' },
+  { id: 4, name: 'void',  spriteIndex: 4, color: '#111111' },
+];
 
 function generateCells(cols: number, rows: number): Uint8Array {
   const cells = new Uint8Array(cols * rows);
-  const grassId = TERRAIN_IDS['grass'];
+  const grassId = 0; // grass is ID 0
   cells.fill(grassId);
   return cells;
 }
@@ -25,13 +33,8 @@ export const useSimulationStore = create<SimulationState & SimulationActions>((s
   inputCols: String(INITIAL_COLS),
   inputRows: String(INITIAL_ROWS),
   spriteSheet: null,
-  terrainSprites: {
-    grass: 0,
-    stone: 1,
-    water: 2,
-    sand: 3,
-    void: 4,
-  },
+  terrains: INITIAL_TERRAINS,
+  terrainSprites: INITIAL_TERRAINS.reduce((acc, t) => ({ ...acc, [t.id]: t.spriteIndex }), {}),
 
   setGridSize: (cols: number, rows: number) => {
     const clampedCols = Math.max(1, Math.min(100, cols));
@@ -78,13 +81,39 @@ export const useSimulationStore = create<SimulationState & SimulationActions>((s
 
   setSpriteSheet: (image: HTMLImageElement | null) => set({ spriteSheet: image }),
   
-  updateTerrainSprite: (terrain: TerrainType, tileIndex: number) => {
+  updateTerrainSprite: (terrainId: number, tileIndex: number) => {
     const state = get();
+    const newTerrains = state.terrains.map(t => 
+      t.id === terrainId ? { ...t, spriteIndex: tileIndex } : t
+    );
     set({
+      terrains: newTerrains,
       terrainSprites: {
         ...state.terrainSprites,
-        [terrain]: tileIndex,
+        [terrainId]: tileIndex,
       },
     });
   },
+
+  addTerrain: (name: string, spriteIndex: number, color?: string) => {
+    const state = get();
+    if (state.terrains.length >= 256) {
+      console.warn('Cannot add more than 256 terrain types');
+      return;
+    }
+    const newId = state.terrains.length;
+    const newTerrain: TerrainDefinition = {
+      id: newId,
+      name,
+      spriteIndex,
+      color: color || '#ff00ff'
+    };
+    set({
+      terrains: [...state.terrains, newTerrain],
+      terrainSprites: {
+        ...state.terrainSprites,
+        [newId]: spriteIndex,
+      },
+    });
+  }
 }));
