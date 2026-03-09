@@ -24,6 +24,8 @@ export interface Entity {
   defense: number;
 }
 
+export type SpriteMapping = Record<TerrainType, number>;
+
 export interface SimulationState {
   cols: number;
   rows: number;
@@ -37,6 +39,8 @@ export interface SimulationState {
   showMapMenu: boolean;
   inputCols: string;
   inputRows: string;
+  spriteSheet: HTMLImageElement | null;
+  terrainSprites: SpriteMapping;
 }
 
 export interface SimulationActions {
@@ -50,4 +54,6 @@ export interface SimulationActions {
   setInputCols: (val: string) => void;
   setInputRows: (val: string) => void;
   processTurn: () => void;
+  setSpriteSheet: (image: HTMLImageElement | null) => void;
+  updateTerrainSprite: (terrain: TerrainType, tileIndex: number) => void;
 }

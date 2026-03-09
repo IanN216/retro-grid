@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { TERRAIN_IDS, type SimulationState, type SimulationActions } from '@/types/simulation';
+import { TERRAIN_IDS, type SimulationState, type SimulationActions, type TerrainType } from '@/types/simulation';
 
 function generateCells(cols: number, rows: number): Uint8Array {
   const cells = new Uint8Array(cols * rows);
@@ -24,6 +24,14 @@ export const useSimulationStore = create<SimulationState & SimulationActions>((s
   showMapMenu: true,
   inputCols: String(INITIAL_COLS),
   inputRows: String(INITIAL_ROWS),
+  spriteSheet: null,
+  terrainSprites: {
+    grass: 0,
+    stone: 1,
+    water: 2,
+    sand: 3,
+    void: 4,
+  },
 
   setGridSize: (cols: number, rows: number) => {
     const clampedCols = Math.max(1, Math.min(100, cols));
@@ -66,5 +74,17 @@ export const useSimulationStore = create<SimulationState & SimulationActions>((s
     const state = get();
     // Future: iterate over cells and entities to compute next state
     console.log(`[Engine] Processing turn for ${state.cols}x${state.rows} grid (${state.cells.length} cells)`);
+  },
+
+  setSpriteSheet: (image: HTMLImageElement | null) => set({ spriteSheet: image }),
+  
+  updateTerrainSprite: (terrain: TerrainType, tileIndex: number) => {
+    const state = get();
+    set({
+      terrainSprites: {
+        ...state.terrainSprites,
+        [terrain]: tileIndex,
+      },
+    });
   },
 }));

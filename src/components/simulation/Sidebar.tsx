@@ -4,6 +4,7 @@ import { Button8bit } from '@/components/ui/8bit/Button8bit';
 import { Card8bit } from '@/components/ui/8bit/Card8bit';
 import { Input8bit } from '@/components/ui/8bit/Input8bit';
 import { TERRAIN_IDS, TERRAIN_TYPE_BY_ID, type TerrainType } from '@/types/simulation';
+import { AssetPanel } from '@/components/simulation/AssetPanel';
 
 const TERRAIN_OPTIONS: { type: TerrainType; label: string; color: string }[] = [
   { type: 'grass', label: 'Grass', color: 'bg-retro-grass' },
@@ -165,6 +166,9 @@ export const Sidebar: React.FC = () => {
             </div>
           </Card8bit>
         )}
+
+        {/* Assets Panel */}
+        <AssetPanel activeTerrain={activeTerrain} />
 
         {/* Terrain Palette */}
         <Card8bit title="Terrain" variant="default">

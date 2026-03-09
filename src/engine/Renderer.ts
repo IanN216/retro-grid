@@ -1,4 +1,5 @@
 import { TERRAIN_TYPE_BY_ID, type TerrainType } from '@/types/simulation';
+import { useSimulationStore } from '@/store/useSimulationStore';
 
 const TERRAIN_COLORS: Record<TerrainType, string> = {
   grass: '#2d5a1e',
@@ -47,16 +48,10 @@ export class Renderer {
     this.ctx.fillRect(0, 0, this.width, this.height);
   }
 
-  drawGrid(
-    cells: Uint8Array,
-    cols: number,
-    rows: number,
-    zoom: number,
-    panX: number,
-    panY: number,
-    selectedCell: { x: number; y: number } | null,
-    hoveredCell: { x: number; y: number } | null
-  ) {
+  drawGrid() {
+    const state = useSimulationStore.getState();
+    const { cells, cols, rows, zoom, panX, panY, selectedCell, hoveredCell, spriteSheet, terrainSprites } = state;
+
     this.clear();
     const ctx = this.ctx;
     const cellSize = this.cellSize * zoom;
@@ -80,33 +75,41 @@ export class Renderer {
         const px = x * cellSize;
         const py = y * cellSize;
 
-        // Checkerboard pattern for visual depth
-        const isAlt = (x + y) % 2 === 0;
-        ctx.fillStyle = isAlt
-          ? TERRAIN_COLORS[terrainType]
-          : TERRAIN_COLORS_ALT[terrainType];
-        ctx.fillRect(px, py, cellSize, cellSize);
+        if (spriteSheet) {
+          const tileIndex = terrainSprites[terrainType] ?? 0;
+          const colsSheet = Math.floor(spriteSheet.width / 16);
+          const sx = (tileIndex % colsSheet) * 16;
+          const sy = Math.floor(tileIndex / colsSheet) * 16;
+          ctx.drawImage(spriteSheet, sx, sy, 16, 16, px, py, cellSize, cellSize);
+        } else {
+          // Checkerboard pattern for visual depth
+          const isAlt = (x + y) % 2 === 0;
+          ctx.fillStyle = isAlt
+            ? TERRAIN_COLORS[terrainType]
+            : TERRAIN_COLORS_ALT[terrainType];
+          ctx.fillRect(px, py, cellSize, cellSize);
 
-        // Draw pixel-art detail dots for grass terrain
-        if (terrainType === 'grass' && cellSize >= 8) {
-          ctx.fillStyle = isAlt ? '#4a8a35' : '#3d7a2a';
-          const dotSize = Math.max(1, cellSize * 0.1);
-          ctx.fillRect(px + cellSize * 0.25, py + cellSize * 0.25, dotSize, dotSize);
-          ctx.fillRect(px + cellSize * 0.7, py + cellSize * 0.6, dotSize, dotSize);
-        }
+          // Draw pixel-art detail dots for grass terrain
+          if (terrainType === 'grass' && cellSize >= 8) {
+            ctx.fillStyle = isAlt ? '#4a8a35' : '#3d7a2a';
+            const dotSize = Math.max(1, cellSize * 0.1);
+            ctx.fillRect(px + cellSize * 0.25, py + cellSize * 0.25, dotSize, dotSize);
+            ctx.fillRect(px + cellSize * 0.7, py + cellSize * 0.6, dotSize, dotSize);
+          }
 
-        if (terrainType === 'stone' && cellSize >= 8) {
-          ctx.fillStyle = isAlt ? '#888888' : '#5e5e5e';
-          const dotSize = Math.max(1, cellSize * 0.15);
-          ctx.fillRect(px + cellSize * 0.3, py + cellSize * 0.5, dotSize, dotSize);
-          ctx.fillRect(px + cellSize * 0.6, py + cellSize * 0.3, dotSize, dotSize);
-        }
+          if (terrainType === 'stone' && cellSize >= 8) {
+            ctx.fillStyle = isAlt ? '#888888' : '#5e5e5e';
+            const dotSize = Math.max(1, cellSize * 0.15);
+            ctx.fillRect(px + cellSize * 0.3, py + cellSize * 0.5, dotSize, dotSize);
+            ctx.fillRect(px + cellSize * 0.6, py + cellSize * 0.3, dotSize, dotSize);
+          }
 
-        if (terrainType === 'water' && cellSize >= 8) {
-          ctx.fillStyle = '#3090d0';
-          const dotSize = Math.max(1, cellSize * 0.2);
-          const waveOffset = (Date.now() / 600 + x * 0.5) % 2;
-          ctx.fillRect(px + cellSize * 0.2, py + cellSize * (0.3 + waveOffset * 0.05), dotSize, Math.max(1, dotSize * 0.4));
+          if (terrainType === 'water' && cellSize >= 8) {
+            ctx.fillStyle = '#3090d0';
+            const dotSize = Math.max(1, cellSize * 0.2);
+            const waveOffset = (Date.now() / 600 + x * 0.5) % 2;
+            ctx.fillRect(px + cellSize * 0.2, py + cellSize * (0.3 + waveOffset * 0.05), dotSize, Math.max(1, dotSize * 0.4));
+          }
         }
       }
     }

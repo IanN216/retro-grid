@@ -54,17 +54,7 @@ export const GridCanvas: React.FC = () => {
     const render = () => {
       const renderer = rendererRef.current;
       if (renderer) {
-        const state = useSimulationStore.getState();
-        renderer.drawGrid(
-          state.cells,
-          state.cols,
-          state.rows,
-          state.zoom,
-          state.panX,
-          state.panY,
-          state.selectedCell,
-          state.hoveredCell
-        );
+        renderer.drawGrid();
       }
       rafRef.current = requestAnimationFrame(render);
     };
