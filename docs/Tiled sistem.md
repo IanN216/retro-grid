@@ -1,83 +1,85 @@
+Documentación Técnica: Sistema de Mosaicos (Tiled System)
+1. Filosofía del Sistema
 
----
+El sistema evoluciona de un renderizado basado en colores planos a uno basado en texturas dinámicas. La clave de esta arquitectura es el desacoplamiento total entre los datos binarios (la grilla) y su representación visual (los sprites).
+2. Estructura de Datos y Estado
 
-# 🎨 Sistema de Mapeo de Sprites 16x16
+El sistema se apoya en tres pilares dentro del store de Zustand (useSimulationStore):
+A. La Grilla Binaria (cells)
 
-Esta mecánica permite sustituir los colores planos de la simulación por texturas extraídas de una plantilla PNG externa. El sistema es dinámico: permite cargar cualquier imagen, calcular sus dimensiones y mapear índices numéricos a tipos de terreno específicos.
+    Tipo: Uint8Array (Array tipado de 1 byte por celda).
 
-## 1. Arquitectura del Sistema
+    Valor: Cada celda almacena un ID numérico (0-255).
 
-La mecánica se apoya en la estructura de **Typed Arrays** definida previamente, donde cada celda de la grilla es un valor de 1 byte en un `Uint8Array`.
+    Rol: Actúa como un puntero lógico. El motor no sabe qué "es" el ID 0, solo sabe que debe buscar su apariencia en el mapa de terrenos.
 
-### Componentes Clave
+B. Definición Dinámica de Terrenos (terrains)
 
-| Componente | Responsabilidad |
-| --- | --- |
-| **`SimulationState`** | Almacena el objeto `HTMLImageElement` de la plantilla y un mapa (`terrainSprites`) que asocia cada `TerrainType` con un índice de baldosa. |
-| **`AssetPanel`** | Interfaz para cargar el archivo PNG y seleccionar visualmente qué cuadro de 16x16 corresponde a cada terreno. |
-| **`Renderer`** | Motor que calcula las coordenadas de recorte ($sx, sy$) y dibuja la textura en el Canvas. |
+    Tipo: TerrainDefinition[]
 
----
+    Estructura: { id: number, name: string, spriteIndex: number }
 
-## 2. Lógica de Mapeo y Selección
+    Mecánica: Permite añadir terrenos ilimitados (hasta el límite de 256 del Uint8Array) sin modificar el código fuente.
 
-Para que el sistema funcione con plantillas de cualquier tamaño, el software no asume un número fijo de columnas en la imagen.
+C. El Asset Maestro (spriteSheet)
 
-### Cálculo del Índice (UI)
+    Tipo: HTMLImageElement | null
 
-Cuando un usuario hace clic en la plantilla cargada para asignar una baldosa, se calcula un **índice secuencial** basado en una cuadrícula de 16x16 píxeles.
+    Requisito: Una imagen PNG que contenga mosaicos de 16x16 píxeles.
 
-$$Index = \lfloor \frac{MouseY}{16} \rfloor \times \left( \frac{\text{Ancho de Imagen}}{16} \right) + \lfloor \frac{MouseX}{16} \rfloor$$
+3. Lógica de Mapeo (Matemáticas del Sistema)
 
-Este índice se guarda en el store de Zustand bajo la propiedad `terrainSprites[terrainType]`.
+Para que el sistema sea compatible con plantillas de cualquier tamaño (siempre que las baldosas sean de 16x16), se utilizan las siguientes fórmulas matemáticas:
+Cálculo del Índice (Desde la UI)
 
----
+Cuando el usuario selecciona un mosaico en el AssetPanel, se calcula su posición lineal:
+Index=⌊MouseY/16⌋×(AnchoImagen/16)+⌊MouseX/16⌋
+Extracción de Coordenadas (Para el Renderizado)
 
-## 3. Motor de Renderizado (Drawing Logic)
+El Renderer.ts debe convertir ese Index en coordenadas X e Y dentro de la imagen original (sx, sy):
 
-El archivo `Renderer.ts` ha sido modificado para priorizar el dibujo de imágenes sobre el de colores.
+    Columnas en la plantilla: cols=AnchoImagen/16
 
-### Reglas de Oro del Renderizado
+    Coordenada de Origen X (sx): (Index(modcols))×16
 
-1. **Nitidez (Pixel Art):** Se debe mantener `imageSmoothingEnabled = false` para evitar el suavizado de los píxeles al escalar las baldosas.
-2. **Culling:** El sistema solo renderiza las celdas visibles en el viewport para mantener los 60 FPS.
+    Coordenada de Origen Y (sy): ⌊Index/cols⌋×16
 
-### Fórmulas de Extracción
+4. Pipeline de Renderizado (Renderer.ts)
 
-Para dibujar una celda, el motor necesita saber de dónde recortar la imagen original. Primero determina cuántas columnas de baldosas tiene la plantilla cargada:
+El motor de renderizado sigue estas reglas estrictas para evitar el "bloqueo" de la UI y mantener el estilo retro:
 
-$$cols_{sheet} = \frac{\text{plantilla.width}}{16}$$
+    Nitidez Pixelada: Se debe forzar ctx.imageSmoothingEnabled = false.
 
-Luego, calcula las coordenadas de origen ($sx$, $sy$) dentro de la plantilla para el índice asignado a ese terreno:
+    Acceso Imperativo: El Renderer lee la grilla usando useSimulationStore.getState().cells para evitar la sobrecarga de re-renders de React a 60 FPS.
 
-* $sx = (index \pmod{cols_{sheet}}) \times 16$
-* $sy = \lfloor \frac{index}{cols_{sheet}} \rfloor \times 16$
+    Dibujo con Recorte:
+    TypeScript
 
-Finalmente, ejecuta el comando de dibujo:
+    ctx.drawImage(
+      spriteSheet, 
+      sx, sy, 16, 16,        // Recorte original (Source)
+      dx, dy, cellSize, cellSize // Dibujo en Canvas (Destination)
+    );
 
-```typescript
-ctx.drawImage(spriteSheet, sx, sy, 16, 16, xCanvas, yCanvas, cellSize, cellSize);
+5. Interfaz de Usuario (Sidebar y Paneles)
+Panel de Terrenos (Dinámico)
 
-```
+    Visualización: Los botones de la paleta ya no usan colores CSS, sino background-image con la URL del spriteSheet.
 
----
+    Posicionamiento CSS: Para mostrar el mosaico correcto en un botón, se usa background-position con los valores de sx y sy calculados en negativo.
 
-## 4. Guía de Extensión: Cómo agregar nuevas texturas
+    Acción "Add Terrain": Permite crear un nuevo objeto en el array terrains, asignándole el siguiente ID disponible y el spriteIndex seleccionado.
 
-Si un programador desea agregar una nueva capa (por ejemplo, "Decoraciones" o "Muebles"), debe seguir estos pasos:
+6. Reglas para Futuras Extensiones (Prevención de Roturas)
 
-1. **Definir el Contrato:** En `src/types/simulation.ts`, añadir el nuevo tipo al union type (ej. `type AccessoryType = 'chair' | 'table'`).
-2. **Actualizar el Store:** Crear un nuevo `Uint8Array` en el store para representar esta capa, permitiendo que cada celda guarde el ID del accesorio.
-3. **Mapear el Sprite:** En el `AssetPanel`, permitir que el usuario seleccione un índice de la plantilla para ese nuevo tipo.
-4. **Añadir al Loop:** En `Renderer.ts`, añadir una segunda pasada de dibujo (`drawLayer`) que utilice las mismas fórmulas de $sx$ y $sy$ para superponer los nuevos sprites sobre el terreno base.
+    Regla de Reactividad de Arrays: Nunca modifiques el Uint8Array directamente (cells[i] = x). Siempre debes crear una copia (new Uint8Array) y pasarla al set() de Zustand para disparar la actualización.
 
----
+    Regla de Tipos: Las constantes de ID (TERRAIN_IDS) deben residir en archivos .ts, nunca en .d.ts, para que Vite pueda incluirlas en el bundle final.
 
-## 5. Consideraciones de Rendimiento
+    Regla de Capas: Si se desea agregar "Objetos" o "Decoraciones" sobre el suelo, se debe crear un segundo Uint8Array (objectLayer) para mantener el rendimiento, en lugar de convertir las celdas en objetos complejos de JavaScript.
 
-* **Memoria:** El uso de `Uint8Array` asegura que incluso con múltiples capas de sprites, el consumo de RAM siga siendo mínimo (1 byte por celda por capa).
-* **Reactividad:** Al actualizar el mapeo de un sprite, es obligatorio clonar el objeto de mapeo en el store para disparar la actualización visual del motor de renderizado.
+    Consistencia de Tamaño: Todos los assets externos deben ser múltiplos de 16 píxeles para mantener la coherencia con el sistema de coordenadas actual.
 
-> **Nota para IAs:** Al modificar el sistema de renderizado, asegúrese de leer siempre el estado de los sprites mediante `useSimulationStore.getState()` para evitar re-renders innecesarios en los componentes de React durante el bucle de animación.
+    Estado del Sistema: Operacional (v0.2.0)
 
----
+    Arquitectura: Data-Driven Tiling Engine.
