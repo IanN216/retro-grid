@@ -32,8 +32,10 @@ export const Sidebar: React.FC = () => {
   const addTerrain = useSimulationStore((s) => s.addTerrain);
   const spriteSheet = useSimulationStore((s) => s.spriteSheet);
   const terrainSprites = useSimulationStore((s) => s.terrainSprites);
+  const generateProceduralMap = useSimulationStore((s) => s.generateProceduralMap);
 
   const [activeTerrainId, setActiveTerrainId] = useState<number>(0);
+  const [seed, setSeed] = useState<string>('8bit');
 
   const handleApplySize = useCallback(() => {
     const c = parseInt(inputCols) || cols;
@@ -278,7 +280,26 @@ export const Sidebar: React.FC = () => {
             >
               ⚡ Process Turn
             </Button8bit>
-            <div className="font-pixel text-[7px] text-retro-text-dim space-y-1">
+
+            <div className="flex flex-col gap-1.5 mt-2">
+              <Input8bit
+                label="Seed"
+                type="text"
+                value={seed}
+                onChange={(e) => setSeed(e.target.value)}
+                className="w-full"
+              />
+              <Button8bit
+                variant="gold"
+                size="md"
+                className="w-full"
+                onClick={() => generateProceduralMap(seed)}
+              >
+                🌍 GENERATE WORLD
+              </Button8bit>
+            </div>
+
+            <div className="font-pixel text-[7px] text-retro-text-dim space-y-1 mt-1">
               <div className="flex justify-between">
                 <span>Total Cells:</span>
                 <span className="text-retro-gold">{cells.length.toLocaleString()}</span>

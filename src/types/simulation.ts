@@ -52,4 +52,5 @@ export interface SimulationActions {
   setSpriteSheet: (image: HTMLImageElement | null) => void;
   updateTerrainSprite: (terrainId: number, tileIndex: number) => void;
   addTerrain: (name: string, spriteIndex: number, color?: string) => void;
+  generateProceduralMap: (seed: string) => void;
 }

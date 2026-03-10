@@ -1,5 +1,32 @@
 import { create } from 'zustand';
 import type { SimulationState, SimulationActions, TerrainDefinition } from '@/types/simulation';
+import { createNoise2D } from 'simplex-noise';
+
+function cyrb128(str: string) {
+  let h1 = 1779033703, h2 = 3144134277,
+      h3 = 1013904242, h4 = 2773480762;
+  for (let i = 0, k; i < str.length; i++) {
+      k = str.charCodeAt(i);
+      h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+      h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+      h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+      h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+  }
+  h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+  h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+  h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+  h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+  return (h1^h2^h3^h4) >>> 0;
+}
+
+function mulberry32(a: number) {
+  return function() {
+    let t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
 
 const tileModules = import.meta.glob('@/resources/tiles/*.webp', { eager: true });
 
@@ -140,5 +167,46 @@ export const useSimulationStore = create<SimulationState & SimulationActions>((s
         [newId]: spriteIndex,
       },
     });
+  },
+
+  generateProceduralMap: (seed: string) => {
+    const state = get();
+    const seedNum = cyrb128(seed || '8bit');
+    const randomFunc = mulberry32(seedNum);
+    const noise2D = createNoise2D(randomFunc);
+    
+    const newCells = new Uint8Array(state.cells.length);
+    
+    const grassId = state.terrains.find(t => t.name === 'grass')?.id ?? 0;
+    const stoneId = state.terrains.find(t => t.name === 'stone')?.id ?? 1;
+    const waterId = state.terrains.find(t => t.name === 'water')?.id ?? 2;
+    const sandId = state.terrains.find(t => t.name === 'sand')?.id ?? 3;
+
+    const scale = 0.1;
+    
+    for (let y = 0; y < state.rows; y++) {
+      for (let x = 0; x < state.cols; x++) {
+        const nx = x * scale;
+        const ny = y * scale;
+        
+        let e = 1 * noise2D(1 * nx, 1 * ny)
+              + 0.5 * noise2D(2 * nx, 2 * ny)
+              + 0.25 * noise2D(4 * nx, 4 * ny);
+              
+        e = e / (1 + 0.5 + 0.25);
+        e = (e + 1) / 2;
+        
+        let terrainId = grassId;
+        if (e < 0.3) terrainId = waterId;
+        else if (e < 0.4) terrainId = sandId;
+        else if (e < 0.7) terrainId = grassId;
+        else terrainId = stoneId;
+        
+        const index = y * state.cols + x;
+        newCells[index] = terrainId;
+      }
+    }
+    
+    set({ cells: newCells });
   }
 }));
