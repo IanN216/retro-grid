@@ -64,7 +64,9 @@ export class Renderer {
         const px = x * cellSize;
         const py = y * cellSize;
 
-        if (spriteSheet) {
+        if (tDef.imageElement) {
+          ctx.drawImage(tDef.imageElement, 0, 0, 16, 16, px, py, cellSize, cellSize);
+        } else if (spriteSheet) {
           const tileIndex = terrainSprites[terrainId] ?? tDef.spriteIndex;
           const colsSheet = Math.floor(spriteSheet.width / 16);
           const sx = (tileIndex % colsSheet) * 16;

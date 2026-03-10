@@ -1,13 +1,38 @@
 import { create } from 'zustand';
 import type { SimulationState, SimulationActions, TerrainDefinition } from '@/types/simulation';
 
-const INITIAL_TERRAINS: TerrainDefinition[] = [
-  { id: 0, name: 'grass', spriteIndex: 0, color: '#2d5a1e' },
-  { id: 1, name: 'stone', spriteIndex: 1, color: '#6b6b6b' },
-  { id: 2, name: 'water', spriteIndex: 2, color: '#1a4a7a' },
-  { id: 3, name: 'sand',  spriteIndex: 3, color: '#c4a43e' },
-  { id: 4, name: 'void',  spriteIndex: 4, color: '#111111' },
-];
+const tileModules = import.meta.glob('@/resources/tiles/*.webp', { eager: true });
+
+function loadTerrains(): TerrainDefinition[] {
+  const terrains: TerrainDefinition[] = [];
+  const paths = Object.keys(tileModules).sort((a, b) => {
+    const numA = parseInt(a.match(/_(\d+)\.webp/)?.[1] || '0', 10);
+    const numB = parseInt(b.match(/_(\d+)\.webp/)?.[1] || '0', 10);
+    return numA - numB;
+  });
+
+  paths.forEach((path, index) => {
+    const module = tileModules[path] as { default: string };
+    const src = module.default;
+    const filename = path.split('/').pop()?.replace('.webp', '') || 'unknown';
+    const name = filename.split('_')[0];
+    const imageElement = new Image();
+    imageElement.src = src;
+
+    terrains.push({
+      id: index,
+      name,
+      spriteIndex: index,
+      color: '#000000',
+      src,
+      imageElement,
+    });
+  });
+
+  return terrains;
+}
+
+const INITIAL_TERRAINS = loadTerrains();
 
 function generateCells(cols: number, rows: number): Uint8Array {
   const cells = new Uint8Array(cols * rows);

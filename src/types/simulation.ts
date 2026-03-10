@@ -3,6 +3,8 @@ export interface TerrainDefinition {
   name: string;
   spriteIndex: number;
   color: string;
+  src: string;
+  imageElement: HTMLImageElement | null;
 }
 
 export interface Entity {

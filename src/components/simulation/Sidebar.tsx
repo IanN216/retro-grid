@@ -177,18 +177,15 @@ export const Sidebar: React.FC = () => {
         <Card8bit title="Terrain" variant="default">
           <div className="flex flex-col gap-1.5">
             {terrains.map((t) => {
-              const spriteIndex = terrainSprites[t.id] ?? t.spriteIndex;
-              let bgStyle: React.CSSProperties = { backgroundColor: t.color };
-              if (spriteSheet) {
-                const colsSheet = Math.floor(spriteSheet.width / 16);
-                const sx = (spriteIndex % colsSheet) * 16;
-                const sy = Math.floor(spriteIndex / colsSheet) * 16;
+              let bgStyle: React.CSSProperties = {};
+              if (t.src) {
                 bgStyle = {
-                  backgroundImage: `url(${spriteSheet.src})`,
-                  backgroundPosition: `-${sx}px -${sy}px`,
-                  backgroundSize: `${spriteSheet.width}px ${spriteSheet.height}px`,
+                  backgroundImage: `url(${t.src})`,
+                  backgroundSize: '16px 16px',
                   imageRendering: 'pixelated',
                 };
+              } else {
+                bgStyle = { backgroundColor: t.color };
               }
               
               return (
